@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rally Dashboard</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --tg-theme-bg-color: #fafafa;
+            --tg-theme-text-color: #222;
+            --tg-theme-button-color: #2e7d32;
+            --tg-theme-button-text-color: #ffffff;
+            --tg-theme-secondary-bg-color: #efefef;
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{
+            font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+            background-color:var(--tg-theme-bg-color);
+            color:var(--tg-theme-text-color);
+            height:100vh;
+            display:flex;
+            flex-direction:column;
+            overflow:hidden;
+        }
+        .header{padding:12px 16px;background:#fff;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;align-items:center}
+        .header h1{font-size:18px;color:var(--tg-theme-button-color)}
+        .messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+        .msg{max-width:85%;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.4}
+        .msg.user{align-self:flex-end;background:#dcf8c6;color:#000;border-bottom-right-radius:4px}
+        .msg.rally{align-self:flex-start;background:#fff;border:1px solid #ddd;color:#000;border-bottom-left-radius:4px}
+        .quick-bar{display:flex;gap:8px;padding:8px 16px;overflow-x:auto;background:var(--tg-theme-secondary-bg-color);border-top:1px solid #ddd}
+        .quick-btn{flex-shrink:0;padding:8px 14px;border:1px solid #ccc;border-radius:20px;background:#fff;font-size:13px;cursor:pointer}
+        .input-area{display:flex;gap:8px;padding:12px 16px;background:#fff;border-top:1px solid #ddd;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+        .input-area input{flex:1;padding:12px 18px;border:1px solid #ddd;border-radius:25px;font-size:15px;outline:none}
+        .send-btn{padding:10px 20px;border:none;border-radius:25px;background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color);font-weight:bold;cursor:pointer}
+        .hidden{display:none}
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🎾 Rally Dash</h1>
+    <button onclick="location.reload()" style="border:none;background:none;font-size:18px">🔄</button>
+</div>
+
+<div class="messages" id="chat">
+    <div class="msg rally">System Online. Dashboard ready to relay commands to your agent.</div>
+</div>
+
+<div class="quick-bar">
+    <button class="quick-btn" onclick="quick('Workout schedule')">🏋️ Workout</button>
+    <button class="quick-btn" onclick="quick('HK rankings')">🏆 Rankings</button>
+    <button class="quick-btn" onclick="quick('Status update')">📊 Status</button>
+    <button class="quick-btn" onclick="quick('Help')">❓ Help</button>
+</div>
+
+<div class="input-area">
+    <input type="text" id="textIn" placeholder="Type a command..." autocomplete="off">
+    <button class="send-btn" onclick="handleSend()">Send</button>
+</div>
+
+<script>
+    // --- CONFIGURATION ---
+    const CONFIG = {
+        TOKEN: '8672063145:AAH7Jj3faxAiOrzZod4lYbQnDtFwjPq8oeU', 
+        CHAT_ID: '-1005031571562',
+        AGENT_TAG: '@RallySquashBot' // <-- CHANGE THIS to your Agent's @username
+    };
+
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.ready();
+
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('textIn');
+
+    // Handle Enter Key
+    input.addEventListener("keypress", (e) => { if(e.key === "Enter") handleSend(); });
+
+    async function handleSend() {
+        const val = input.value.trim();
+        if(!val) return;
+
+        addMsg('user', val);
+        input.value = '';
+
+        // The Relay Logic: Sending a real message via Messenger Bot
+        try {
+            const response = await fetch(`https://api.telegram.org/bot${CONFIG.TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    chat_id: CONFIG.CHAT_ID,
+                    text: `${CONFIG.AGENT_TAG} ${val}`
+                })
+            });
+
+            const result = await response.json();
+            if(!result.ok) {
+                addMsg('rally', "Error: " + result.description);
+            }
+        } catch (err) {
+            addMsg('rally', "Connection error. Check your internet.");
+        }
+    }
+
+    function addMsg(role, text) {
+        const d = document.createElement('div');
+        d.className = 'msg ' + role;
+        d.textContent = text;
+        chat.appendChild(d);
+        d.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function quick(t) {
+        input.value = t;
+        handleSend();
+    }
+
+    // Apply Telegram Theme Colors
+    if(tg.colorScheme === 'dark') {
+        document.body.style.backgroundColor = '#1c1c1d';
+        document.body.style.color = '#ffffff';
+    }
+</script>
+
+</body>
+</html>
